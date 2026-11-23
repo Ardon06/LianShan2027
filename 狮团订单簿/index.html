@@ -285,7 +285,7 @@ textarea{min-height:70px;resize:vertical}
     return '<article class="card'+(st===3?' cancelled':'')+'" data-id="'+esc(o.id)+'">'
      +'<div class="top"><span class="time">'+esc(o.time)+'</span><span class="item">'+esc(o.item)+'</span>'
      +(c?'<span class="tag" title="'+c+'">撞期</span>':'')
-     +'<button class="pill st'+st+'" data-act="cycle" data-id="'+esc(o.id)+'"'+(readOnly?' disabled':'')+'>'+STN[st]+'</button></div>'
+     +'<button class="pill st'+st+'" data-act="cycle" data-id="'+esc(o.id)+'">'+STN[st]+'</button></div>'
      +'<div class="r2"><span>'+esc(o.area)+'</span><span class="sep">·</span><span class="own">'+esc(o.owner)+'</span><span class="sep">·</span>'
      +'<a href="tel:'+esc(String(o.phone).replace(/[^\d+]/g,''))+'">'+esc(o.phone)+'</a>'
      +'<button class="mini" data-act="copy" data-p="'+esc(o.phone)+'">复制</button></div>'
@@ -384,7 +384,7 @@ textarea{min-height:70px;resize:vertical}
   $('sheetRoot').addEventListener('click',function(e){var b=e.target.closest('[data-fill]');if(b){$(b.dataset.fill).value=b.dataset.v}});
   $('list').addEventListener('click',function(e){
     var b=e.target.closest('button[data-act]');
-    if(!b){if(readOnly||e.target.closest('a'))return;var cd=e.target.closest('.card');if(cd){var oc=orders.filter(function(x){return x.id===cd.dataset.id})[0];if(oc)openSheet(oc)}return}
+    if(!b){if(e.target.closest('a'))return;var cd=e.target.closest('.card');if(cd){var oc=orders.filter(function(x){return x.id===cd.dataset.id})[0];if(oc)openSheet(oc)}return}
     var a=b.dataset.act;
     if(a==='edit'){var o=orders.filter(function(x){return x.id===b.dataset.id})[0];if(o)openSheet(o)}
     else if(a==='cycle'&&col){var o2=orders.filter(function(x){return x.id===b.dataset.id})[0];if(!o2)return;
@@ -399,14 +399,14 @@ textarea{min-height:70px;resize:vertical}
   render();
   var timer=setTimeout(function(){if(!loaded)setSync('bad','暂时连不上，数据可能不是最新')},10000);
   (async function(){
-    var db=null,user=null;
+    var db=null;
     try{db=await window.claude.use('db')}catch(e){}
-    try{user=await window.claude.use('user')}catch(e){}
     if(!db){clearTimeout(timer);setSync('bad','未连接');loaded=true;
-      $('banner').innerHTML='<div class="banner">无法打开共享数据。请用已登录的账号打开这个链接。</div>';render();return}
-    try{var cw=user?await user.can('data.write'):null;if(cw===false)readOnly=true}catch(e){}
-    $('fab').hidden=readOnly;
-    if(readOnly)$('banner').innerHTML='<div class="banner">你目前只能查看订单。要新增或修改，请让管理员把你设为「Contributor」（可编辑）。</div>';
+      $('banner').innerHTML='<div class="banner">暂时无法连接订单数据，请检查网络或数据服务设置。</div>';render();return}
+    /* 取消前端登录身份与只读权限判断：打开页面即可新增、编辑订单。 */
+    readOnly=false;
+    $('fab').hidden=false;
+    $('banner').innerHTML='';
     col=db.collection('orders');
     col.onSnapshot(function(snap){
       orders=snap.docs.map(function(d){var x=Object.assign({},d.data()||{});x.id=d.id;return x}).filter(function(x){return x.day>=1&&x.day<=20});
