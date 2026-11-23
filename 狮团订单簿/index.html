@@ -1,0 +1,423 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>2027 新年订单</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&display=swap">
+<style>
+/* Layout: red header band, sticky 初一-十五 day strip, ledger-style order cards, floating add button + bottom sheet form. */
+:root{
+  --bg:#F3F1EF; --surface:#FFFFFF; --ink:#211716; --muted:#7B6E6A; --line:#E3DCD8;
+  --red:#B1222B; --red-deep:#8E1820; --on-red:#FFF6EE; --gold:#E2B04A; --gold-soft:#F7E9C4; --gold-ink:#6B4A06;
+  --ok:#1F6B43; --ok-bg:#DDF0E3; --warn:#8A5A00; --warn-bg:#FBEBC8; --done:#56616B; --done-bg:#E6E9EC; --off:#8A2A2A; --off-bg:#F4DEDE;
+  --shadow:0 1px 2px rgba(40,20,15,.08),0 4px 14px rgba(40,20,15,.06);
+  --serif:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+  --sans:system-ui,-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161010; --surface:#241918; --ink:#F4EAE6; --muted:#AA9892; --line:#3B2C2A;
+    --red:#D2434A; --red-deep:#7E161D; --on-red:#FFF6EE; --gold:#E7B853; --gold-soft:#3B2F14; --gold-ink:#F0CE80;
+    --ok:#7FD0A0; --ok-bg:#1B3526; --warn:#F0C26A; --warn-bg:#3B2D10; --done:#A9B3BC; --done-bg:#2B3035; --off:#F0A0A0; --off-bg:#3F1E1E;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161010; --surface:#241918; --ink:#F4EAE6; --muted:#AA9892; --line:#3B2C2A;
+  --red:#D2434A; --red-deep:#7E161D; --on-red:#FFF6EE; --gold:#E7B853; --gold-soft:#3B2F14; --gold-ink:#F0CE80;
+  --ok:#7FD0A0; --ok-bg:#1B3526; --warn:#F0C26A; --warn-bg:#3B2D10; --done:#A9B3BC; --done-bg:#2B3035; --off:#F0A0A0; --off-bg:#3F1E1E;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;padding-block:0 96px;-webkit-tap-highlight-color:transparent}
+body.lock{overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* header */
+.hero{background:var(--red);color:var(--on-red);margin-top:calc(-1*env(safe-area-inset-top,0px));padding-block:calc(env(safe-area-inset-top,0px) + 18px) 16px}
+.hero .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:600}
+.hero h1{font-family:var(--serif);font-weight:800;font-size:30px;line-height:1.2;margin:2px 0 10px;text-wrap:balance}
+.hero-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:12px;font-size:13px}
+.sync{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;background:rgba(0,0,0,.2)}
+.sync i{width:8px;height:8px;border-radius:50%;background:#9AA;display:block}
+.sync.live i{background:#6EE7A0}
+.sync.bad i{background:var(--gold)}
+.search{width:100%;border:0;border-radius:10px;padding:11px 14px;font-size:16px;background:rgba(255,255,255,.95);color:#211716}
+.search::placeholder{color:#8a7b77}
+
+/* day strip */
+.strip{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.strip-scroll{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));scrollbar-width:none}
+.strip-scroll::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;scroll-snap-align:center;min-width:58px;padding:7px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:center;position:relative}
+.chip b{display:block;font-family:var(--serif);font-weight:800;font-size:17px;line-height:1.2}
+.chip small{display:block;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip em{position:absolute;top:-6px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--gold);color:#3b2a04;font-style:normal;font-size:11px;font-weight:700;line-height:18px;font-variant-numeric:tabular-nums}
+.chip.today::after{content:"今天";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);font-size:10px;background:var(--red);color:#fff;border-radius:6px;padding:0 5px;line-height:15px}
+.chip[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--on-red)}
+.chip[aria-pressed="true"] small{color:var(--on-red);opacity:.85}
+.chip.all b{font-family:var(--sans);font-size:15px;padding-top:4px}
+
+.list{padding-block:14px 0;display:flex;flex-direction:column;gap:12px}
+.dayhead{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.dayhead h2{font-family:var(--serif);font-size:20px;margin:0}
+.dayhead span{color:var(--muted);font-size:13px}
+.dayhead .n{margin-left:auto;font-weight:600;color:var(--ink)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+.card.cancelled{opacity:.6}
+.card.cancelled .item{text-decoration:line-through}
+.top{display:flex;align-items:center;gap:10px}
+.time{font-family:var(--serif);font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.time small{font-family:var(--sans);font-weight:500;font-size:12px;color:var(--muted);margin-left:4px}
+.pill{margin-left:auto;border:0;border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600}
+.st0{background:var(--warn-bg);color:var(--warn)}
+.st1{background:var(--ok-bg);color:var(--ok)}
+.st2{background:var(--done-bg);color:var(--done)}
+.st3{background:var(--off-bg);color:var(--off)}
+.item{font-size:18px;font-weight:700}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:0}
+.meta div{min-width:0}
+.meta dt{font-size:11px;letter-spacing:.1em;color:var(--muted);margin:0}
+.meta dd{margin:0;overflow-wrap:anywhere}
+.meta .full{grid-column:1/-1}
+.phone{display:flex;align-items:center;gap:10px}
+.phone a{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);text-decoration:underline;text-decoration-color:var(--gold);text-underline-offset:3px}
+.mini{border:1px solid var(--line);background:transparent;border-radius:8px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.note{background:var(--gold-soft);color:var(--gold-ink);border-radius:8px;padding:8px 10px;font-size:14px;overflow-wrap:anywhere;white-space:pre-wrap}
+.clash{font-size:13px;color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:6px 10px}
+.foot{display:flex;justify-content:flex-end}
+.foot .mini{padding:10px 26px;font-size:16px;color:var(--ink);background:var(--bg)}
+.card:not(.cancelled){cursor:pointer}
+/* compact rows */
+.list{gap:6px;padding-block:10px 0}
+.card{padding:9px 12px;gap:3px;border-radius:12px;box-shadow:none}
+.top{gap:8px}
+.time{font-size:20px;min-width:54px}
+.item{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{padding:3px 10px;font-size:12px;flex:0 0 auto}
+.tag{flex:0 0 auto;font-size:11px;font-weight:700;background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:1px 6px}
+.r2{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:14px;padding-left:62px;color:var(--ink)}
+.r2 .sep{color:var(--muted)}
+.r2 .own{font-weight:600}
+.r2 a{font-variant-numeric:tabular-nums;color:var(--ink);text-decoration:underline;text-decoration-color:var(--gold);text-underline-offset:3px}
+.r2 .mini{padding:0 8px;font-size:12px;line-height:20px}
+.note1{padding-left:62px;font-size:13px;color:var(--gold-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dayhead{margin-top:10px}
+.dayhead h2{font-size:18px}
+/* polish */
+.hero{position:relative;overflow:hidden;background-color:var(--red);background-image:radial-gradient(circle at 14px 14px,rgba(226,176,74,.22) 0 1.4px,transparent 2px),linear-gradient(165deg,var(--red) 30%,var(--red-deep));background-size:28px 28px,100% 100%;border-bottom:3px solid var(--gold)}
+.hero::after{content:"狮";position:absolute;right:-6px;bottom:-34px;font-family:var(--serif);font-weight:800;font-size:150px;line-height:1;color:var(--gold);opacity:.16;pointer-events:none}
+.hero>*{position:relative;z-index:1}
+.hero .eyebrow{display:flex;align-items:center;gap:8px}
+.hero .eyebrow::before{content:"";width:18px;height:2px;background:var(--gold)}
+.hero h1{letter-spacing:.08em;font-size:32px}
+.sync{backdrop-filter:blur(2px)}
+.search{box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.strip{box-shadow:0 2px 8px rgba(40,20,15,.06)}
+.chip{border-radius:12px;transition:background .15s,border-color .15s}
+.chip[aria-pressed="true"]{box-shadow:0 3px 8px rgba(150,25,32,.28);border-color:var(--gold);border-bottom-width:3px}
+.chip[aria-pressed="true"] b{color:var(--on-red)}
+.dayhead{align-items:center;gap:10px}
+.dayhead h2::before{content:"";display:inline-block;width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin-right:9px;vertical-align:middle;position:relative;top:-2px}
+.dayhead::after{content:"";order:2;flex:1;height:1px;background:var(--line)}
+.dayhead .n{order:3;margin-left:0;background:var(--red);color:var(--on-red);border-radius:99px;padding:1px 10px;font-size:12px}
+.card{border-color:var(--line);background:var(--surface);box-shadow:0 1px 0 rgba(40,20,15,.04),0 3px 10px rgba(40,20,15,.05)}
+.card:active{background:var(--gold-soft)}
+.time{background:var(--gold-soft);color:var(--gold-ink);border-radius:8px;padding:2px 0;text-align:center;min-width:56px;font-size:19px}
+.pill{display:inline-flex;align-items:center;gap:5px}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.item{font-family:var(--serif);font-weight:800;letter-spacing:.02em}
+.r2,.note1{padding-left:64px}
+.fab{border:2px solid var(--gold);letter-spacing:.04em}
+.sheet{border-top:3px solid var(--gold)}
+.sheet h3{letter-spacing:.06em}
+.btn.main{background:linear-gradient(165deg,var(--red),var(--red-deep));border-color:var(--red-deep)}
+.empty{background:var(--surface);border-color:var(--gold)}
+.empty b{letter-spacing:.06em}
+.hero .logo{position:absolute;z-index:2;top:calc(env(safe-area-inset-top,0px) + 14px);right:max(16px,env(safe-area-inset-right,0px));width:68px;height:68px;border-radius:50%;border:2px solid var(--gold);background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.hero .eyebrow,.hero h1{padding-right:84px}
+
+.empty{border:1.5px dashed var(--line);border-radius:14px;padding:32px 20px;text-align:center;color:var(--muted);margin-top:8px}
+.empty b{display:block;font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px}
+.banner{margin-top:12px;background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px}
+
+.fab{position:fixed;z-index:25;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--red);color:var(--on-red);border:0;border-radius:99px;padding:15px 22px;font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(120,20,25,.35)}
+
+/* sheet */
+.back{position:fixed;inset:0;z-index:40;background:rgba(10,4,4,.5)}
+.sheet{position:fixed;z-index:41;left:0;right:0;bottom:0;max-height:94dvh;overflow-y:auto;background:var(--surface);border-radius:18px 18px 0 0;padding-top:8px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:640px;margin:0 auto}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.sheet h3{font-family:var(--serif);font-size:22px;margin:0 0 12px}
+form{display:flex;flex-direction:column;gap:14px}
+label,.lab{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.two>*{min-width:0}
+input,select,textarea{width:100%;font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);min-width:0}
+textarea{min-height:70px;resize:vertical}
+.sugg{display:flex;flex-wrap:wrap;gap:6px}
+.sugg button{border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:4px 12px;font-size:13px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg label{flex-direction:row;justify-content:center;border:1px solid var(--line);border-radius:10px;padding:9px 2px;font-size:14px;color:var(--ink);background:var(--bg);font-weight:600;position:relative}
+.seg input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
+.seg label:has(input:checked){background:var(--red);border-color:var(--red);color:var(--on-red)}
+.seg label:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:2px}
+.err{color:var(--off);font-size:14px;min-height:0}
+.actions{display:flex;gap:10px;margin-top:4px}
+.btn{flex:1;border-radius:12px;padding:13px;font-size:16px;font-weight:700;border:1px solid var(--line);background:var(--bg)}
+.btn.main{background:var(--red);border-color:var(--red);color:var(--on-red);flex:2}
+.btn.del{flex:0 0 auto;color:var(--off);padding-inline:16px}
+.btn.del.sure{background:var(--off);color:#fff;border-color:var(--off)}
+.btn:disabled{opacity:.6}
+.toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:#2a1d1c;color:#fff;border-radius:10px;padding:10px 16px;font-size:14px;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(40px);opacity:.5}}}
+</style>
+
+<header class="hero wrap">
+  <img class="logo" src="logo.webp" alt="聯善 LIANSHAN" width="68" height="68">
+  <div class="eyebrow">聯善 · 丁未年正月初一至二十</div>
+  <h1>狮团订单簿</h1>
+  <div class="hero-row">
+    <span class="sync" id="sync"><i></i><span id="syncTxt">连接中…</span></span>
+    <span id="summary"></span>
+  </div>
+  <input class="search" id="q" type="search" placeholder="搜索地区、负责人、电话、项目" autocomplete="off">
+</header>
+
+<nav class="strip" aria-label="选择日期"><div class="strip-scroll" id="strip"></div></nav>
+
+<main class="wrap">
+  <div id="banner"></div>
+  <div class="list" id="list"></div>
+</main>
+
+<button class="fab" id="fab" type="button" hidden>＋ 新订单</button>
+<div id="toast" class="toast" hidden></div>
+
+<div id="sheetRoot" hidden>
+  <div class="back" id="back"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="grab"></div>
+    <h3 id="sheetTitle">新订单</h3>
+    <form id="form" novalidate>
+      <div class="two">
+        <label for="f-day">表演日期<select id="f-day"></select></label>
+        <label for="f-time">表演时间<input id="f-time" type="time"></label>
+      </div>
+      <div class="lab">
+        <label for="f-item" style="gap:5px">表演项目<input id="f-item" type="text" placeholder="例如：采青、高桩狮" autocomplete="off"></label>
+        <div class="sugg" id="sugg-item"></div>
+      </div>
+      <label for="f-area">表演地区<input id="f-area" type="text" placeholder="例如：蕉赖、八打灵再也" autocomplete="off"></label>
+      <div class="lab">
+        <label for="f-owner" style="gap:5px">负责人<input id="f-owner" type="text" placeholder="负责这场的人" autocomplete="off"></label>
+        <div class="sugg" id="sugg-owner"></div>
+      </div>
+      <label for="f-phone">顾客电话号码<input id="f-phone" type="tel" inputmode="tel" placeholder="012-345 6789" autocomplete="off"></label>
+      <label for="f-note">备注（选填）<textarea id="f-note" placeholder="详细地址、人数、价钱、特别要求"></textarea></label>
+      <div class="lab">状态
+        <div class="seg" id="seg">
+          <label><input type="radio" name="st" value="0">待确认</label>
+          <label><input type="radio" name="st" value="1" checked>已确认</label>
+          <label><input type="radio" name="st" value="2">已完成</label>
+          <label><input type="radio" name="st" value="3">已取消</label>
+        </div>
+      </div>
+      <div class="err" id="err" role="alert"></div>
+      <div class="actions">
+        <button type="button" class="btn del" id="del" hidden>删除</button>
+        <button type="button" class="btn" id="cancel">取消</button>
+        <button type="submit" class="btn main" id="save">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  var DAYN=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+  var WK=['日','一','二','三','四','五','六'];
+  var ITEMS=['双狮','双狮财神','舞龙','击鼓','LED舞狮','LED舞龙'];
+  var STN=['待确认','已确认','已完成','已取消'];
+  var orders=[], col=null, readOnly=false, selDay=0, editing=null, saving=false, delArmed=false, loaded=false;
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function dateOf(n){return new Date(2027,1,5+n)}
+  function md(n){var d=dateOf(n);return (d.getMonth()+1)+'月'+d.getDate()+'日'}
+  function md2(n){var d=dateOf(n);return (d.getMonth()+1)+'/'+d.getDate()}
+  function wk(n){return '周'+WK[dateOf(n).getDay()]}
+  function todayN(){var t=new Date(),a=new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime(),b=new Date(2027,1,6).getTime();var n=Math.round((a-b)/864e5)+1;return n>=1&&n<=20?n:0}
+  function tmin(t){var m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):null}
+  function period(t){var h=(tmin(t)||0)/60|0;return h<12?'上午':h<18?'下午':'晚上'}
+  var toastT;function toast(m){var e=$('toast');e.textContent=m;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){e.hidden=true},2600)}
+  try{var s=localStorage.getItem('lion-day');if(s!==null)selDay=+s||0}catch(e){}
+
+  function sorted(list){return list.slice().sort(function(a,b){return (a.day-b.day)||((tmin(a.time)||0)-(tmin(b.time)||0))||((a.createdAt||0)-(b.createdAt||0))})}
+  function clashes(o){
+    if(+o.status===3)return '';
+    var me=tmin(o.time),ow=(o.owner||'').trim().toLowerCase();if(me==null||!ow)return '';
+    for(var i=0;i<orders.length;i++){var p=orders[i];
+      if(p.id===o.id||+p.status===3||p.day!==o.day)continue;
+      if((p.owner||'').trim().toLowerCase()!==ow)continue;
+      var pm=tmin(p.time);if(pm!=null&&Math.abs(pm-me)<90)return '同一负责人在 '+p.time+' 还有一单（'+esc(p.area)+'），时间很近';
+    }return '';
+  }
+
+  function renderStrip(){
+    var sc=$('strip'),left=sc.scrollLeft,t=todayN(),cnt={},total=0;
+    orders.forEach(function(o){if(+o.status!==3){cnt[o.day]=(cnt[o.day]||0)+1;total++}});
+    var h='<button class="chip all" data-d="0" aria-pressed="'+(selDay===0)+'"><b>全部</b><small>'+total+' 单</small></button>';
+    for(var n=1;n<=20;n++){
+      h+='<button class="chip'+(n===t?' today':'')+'" data-d="'+n+'" aria-pressed="'+(selDay===n)+'">'+(cnt[n]?'<em>'+cnt[n]+'</em>':'')+'<b>'+DAYN[n-1]+'</b><small>'+md2(n)+'</small></button>';
+    }
+    sc.innerHTML=h;sc.scrollLeft=left;
+  }
+  function scrollSel(){var b=$('strip').querySelector('[aria-pressed="true"]');if(b&&b.scrollIntoView)b.scrollIntoView({inline:'center',block:'nearest'})}
+
+  function card(o){
+    var st=+o.status||0,c=clashes(o);
+    return '<article class="card'+(st===3?' cancelled':'')+'" data-id="'+esc(o.id)+'">'
+     +'<div class="top"><span class="time">'+esc(o.time)+'</span><span class="item">'+esc(o.item)+'</span>'
+     +(c?'<span class="tag" title="'+c+'">撞期</span>':'')
+     +'<button class="pill st'+st+'" data-act="cycle" data-id="'+esc(o.id)+'"'+(readOnly?' disabled':'')+'>'+STN[st]+'</button></div>'
+     +'<div class="r2"><span>'+esc(o.area)+'</span><span class="sep">·</span><span class="own">'+esc(o.owner)+'</span><span class="sep">·</span>'
+     +'<a href="tel:'+esc(String(o.phone).replace(/[^\d+]/g,''))+'">'+esc(o.phone)+'</a>'
+     +'<button class="mini" data-act="copy" data-p="'+esc(o.phone)+'">复制</button></div>'
+     +(o.note?'<div class="note1">'+esc(o.note)+'</div>':'')
+     +'</article>';
+  }
+
+  function render(){
+    renderStrip();
+    var q=$('q').value.trim().toLowerCase();
+    var list=sorted(orders).filter(function(o){
+      if(selDay&&o.day!==selDay)return false;
+      if(!q)return true;
+      return [o.area,o.owner,o.phone,o.item,o.note].join(' ').toLowerCase().indexOf(q)>=0;
+    });
+    var act=orders.filter(function(o){return +o.status!==3}),conf=act.filter(function(o){return +o.status===1}).length,pend=act.filter(function(o){return +o.status===0}).length;
+    $('summary').textContent='共 '+act.length+' 单 · 已确认 '+conf+' · 待确认 '+pend;
+    var h='',last=0;
+    list.forEach(function(o){
+      if(o.day!==last){last=o.day;var k=list.filter(function(x){return x.day===o.day}).length;
+        h+='<div class="dayhead"><h2>'+DAYN[o.day-1]+'</h2><span>'+md(o.day)+' '+wk(o.day)+'</span><span class="n">'+k+' 单</span></div>';}
+      h+=card(o);
+    });
+    if(!list.length){
+      if(!loaded)h='<div class="empty"><b>正在同步订单…</b>请稍等。</div>';
+      else if(q)h='<div class="empty"><b>找不到相符的订单</b>换个关键字试试。</div>';
+      else h='<div class="empty"><b>'+(selDay?DAYN[selDay-1]+'还没有订单':'还没有订单')+'</b>'+(readOnly?'有人新增订单后会在这里出现。':'点右下角「＋ 新订单」登记第一单。大家的手机会同时看到。')+'</div>';
+    }
+    $('list').innerHTML=h;
+  }
+
+  /* sheet */
+  function fillDays(){var h='';for(var n=1;n<=20;n++)h+='<option value="'+n+'">'+DAYN[n-1]+' · '+md(n)+' '+wk(n)+'</option>';$('f-day').innerHTML=h}
+  function suggs(){
+    var it={},ow={};ITEMS.forEach(function(x){it[x]=1});
+    orders.forEach(function(o){if(o.item)it[o.item]=1;if(o.owner)ow[o.owner]=(ow[o.owner]||0)+1});
+    var owners=Object.keys(ow).sort(function(a,b){return ow[b]-ow[a]}).slice(0,10);
+    $('sugg-item').innerHTML=Object.keys(it).slice(0,14).map(function(x){return '<button type="button" data-fill="f-item" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('');
+    $('sugg-owner').innerHTML=owners.map(function(x){return '<button type="button" data-fill="f-owner" data-v="'+esc(x)+'">'+esc(x)+'</button>'}).join('');
+  }
+  function openSheet(o){
+    editing=o||null;delArmed=false;
+    fillDays();suggs();
+    $('sheetTitle').textContent=o?'编辑订单':'新订单';
+    $('f-day').value=String(o?o.day:(selDay||todayN()||1));
+    $('f-time').value=o?o.time:'';
+    $('f-item').value=o?o.item:'';$('f-area').value=o?o.area:'';$('f-owner').value=o?o.owner:'';
+    $('f-phone').value=o?o.phone:'';$('f-note').value=o?(o.note||''):'';
+    var st=o?String(+o.status||0):'1';
+    Array.prototype.forEach.call(document.querySelectorAll('input[name=st]'),function(r){r.checked=(r.value===st)});
+    $('err').textContent='';$('del').hidden=!o;$('del').textContent='删除';$('del').classList.remove('sure');
+    $('save').disabled=false;saving=false;
+    $('sheetRoot').hidden=false;document.body.classList.add('lock');
+  }
+  function closeSheet(){$('sheetRoot').hidden=true;document.body.classList.remove('lock');editing=null}
+
+  function fail(e){
+    var c=e&&e.code;
+    if(c==='invalid_argument'||c==='revoked')toast('没有编辑权限。请管理员把你设为「Contributor」或更高。');
+    else if(c==='quota_exceeded')toast('订单数量已满，请联系管理员。');
+    else toast('保存失败，请检查网络后再试一次。');
+  }
+  function save(ev){
+    ev.preventDefault();if(saving||!col)return;
+    var d={day:+$('f-day').value,time:$('f-time').value,item:$('f-item').value.trim(),area:$('f-area').value.trim(),
+      owner:$('f-owner').value.trim(),phone:$('f-phone').value.trim(),note:$('f-note').value.trim(),
+      status:+(document.querySelector('input[name=st]:checked')||{value:1}).value};
+    var miss=[];if(!d.time)miss.push('表演时间');if(!d.item)miss.push('表演项目');if(!d.area)miss.push('表演地区');if(!d.owner)miss.push('负责人');if(!d.phone)miss.push('顾客电话');
+    if(miss.length){$('err').textContent='请填写：'+miss.join('、');return}
+    if(d.phone.replace(/\D/g,'').length<7){$('err').textContent='电话号码好像不完整，请检查。';return}
+    saving=true;$('save').disabled=true;d.updatedAt=Date.now();
+    var p;
+    if(editing){d.createdAt=editing.createdAt||d.updatedAt;p=col.doc(editing.id).set(d)}
+    else{d.createdAt=d.updatedAt;p=col.add(d)}
+    p.then(function(){closeSheet();toast(editing?'已更新':'已保存，大家都看到了')}).catch(function(e){saving=false;$('save').disabled=false;fail(e)});
+  }
+  function del(){
+    if(!editing||!col)return;
+    if(!delArmed){delArmed=true;$('del').textContent='再点一次删除';$('del').classList.add('sure');return}
+    col.doc(editing.id).delete().then(function(){closeSheet();toast('已删除')}).catch(fail);
+  }
+
+  /* events */
+  $('strip').addEventListener('click',function(e){
+    var b=e.target.closest('.chip');if(!b)return;selDay=+b.dataset.d;
+    try{localStorage.setItem('lion-day',String(selDay))}catch(x){}
+    render();scrollSel();window.scrollTo({top:0});
+  });
+  $('q').addEventListener('input',render);
+  $('fab').addEventListener('click',function(){openSheet(null)});
+  $('back').addEventListener('click',closeSheet);
+  $('cancel').addEventListener('click',closeSheet);
+  $('form').addEventListener('submit',save);
+  $('del').addEventListener('click',del);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('sheetRoot').hidden)closeSheet()});
+  $('sheetRoot').addEventListener('click',function(e){var b=e.target.closest('[data-fill]');if(b){$(b.dataset.fill).value=b.dataset.v}});
+  $('list').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-act]');
+    if(!b){if(readOnly||e.target.closest('a'))return;var cd=e.target.closest('.card');if(cd){var oc=orders.filter(function(x){return x.id===cd.dataset.id})[0];if(oc)openSheet(oc)}return}
+    var a=b.dataset.act;
+    if(a==='edit'){var o=orders.filter(function(x){return x.id===b.dataset.id})[0];if(o)openSheet(o)}
+    else if(a==='cycle'&&col){var o2=orders.filter(function(x){return x.id===b.dataset.id})[0];if(!o2)return;
+      var ns=((+o2.status||0)+1)%4;col.doc(o2.id).update({status:ns,updatedAt:Date.now()}).then(function(){toast(o2.time+' '+o2.item+'：'+STN[ns])}).catch(fail)}
+    else if(a==='copy'){var t=b.dataset.p;
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('已复制 '+t)}).catch(function(){toast('请长按号码复制')});
+      else toast('请长按号码复制')}
+  });
+
+  /* live data */
+  function setSync(cls,txt){var s=$('sync');s.className='sync '+cls;$('syncTxt').textContent=txt}
+  render();
+  var timer=setTimeout(function(){if(!loaded)setSync('bad','暂时连不上，数据可能不是最新')},10000);
+  (async function(){
+    var db=null,user=null;
+    try{db=await window.claude.use('db')}catch(e){}
+    try{user=await window.claude.use('user')}catch(e){}
+    if(!db){clearTimeout(timer);setSync('bad','未连接');loaded=true;
+      $('banner').innerHTML='<div class="banner">无法打开共享数据。请用已登录的账号打开这个链接。</div>';render();return}
+    try{var cw=user?await user.can('data.write'):null;if(cw===false)readOnly=true}catch(e){}
+    $('fab').hidden=readOnly;
+    if(readOnly)$('banner').innerHTML='<div class="banner">你目前只能查看订单。要新增或修改，请让管理员把你设为「Contributor」（可编辑）。</div>';
+    col=db.collection('orders');
+    col.onSnapshot(function(snap){
+      orders=snap.docs.map(function(d){var x=Object.assign({},d.data()||{});x.id=d.id;return x}).filter(function(x){return x.day>=1&&x.day<=20});
+      if(!snap.metadata.fromCache){loaded=true;clearTimeout(timer);setSync('live','实时同步中')}
+      else if(!loaded)setSync('','同步中…');
+      render();
+      if(!$('sheetRoot').hidden)suggs();
+    },function(err){clearTimeout(timer);loaded=true;setSync('bad',err&&err.code==='revoked'?'访问已被收回':'同步中断');render()});
+    setTimeout(scrollSel,0);
+  })();
+})();
+</script>
+
+</body></html>
